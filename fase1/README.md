@@ -92,11 +92,17 @@ Setiap lapisan hanya berkomunikasi dengan lapisan di bawahnya secara langsung.
 ### Kompilasi
 
 ```bash
-# Masuk ke direktori proyek
-cd vehicle-rental-system
+# Masuk ke direktori proyek (sesuaikan dengan lokasi folder kamu)
+cd path/to/Sistem-Peminjaman-Kendaraan
+
+# Buat folder output
+mkdir -p out
 
 # Kompilasi semua file Java
-javac -d out src/**/*.java src/Main.java
+javac -d out -sourcepath src src/Main.java src/model/*.java src/service/*.java src/database/*.java src/report/*.java src/util/*.java
+
+# Jalankan
+java -cp out Main
 ```
 
 ### Jalankan
