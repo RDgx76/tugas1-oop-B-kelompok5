@@ -9,7 +9,7 @@ import util.InputHelper;
 
 import java.util.List;
 
-public class Main {
+public class main {
 
     private static UserService       userService;
     private static PeminjamanService peminjamanService;
