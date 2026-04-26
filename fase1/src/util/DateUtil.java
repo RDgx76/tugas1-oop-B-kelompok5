@@ -21,7 +21,7 @@ public class DateUtil {
         return ChronoUnit.DAYS.between(dari, ke);
     }
 
-    public static LocalDate hari ini() {
+    public static LocalDate hariini() {
         return LocalDate.now();
     }
 }
