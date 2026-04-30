@@ -38,7 +38,7 @@ public class PeminjamanService {
 
         // 1. Pilih user
         String idUser = InputHelper.inputString("Masukkan ID User: ");
-        User user = userService.cariById(idUser).orElse(null);
+        User user = userService.cariUserById(idUser).orElse(null);
         if (user == null) {
             System.out.println("User tidak ditemukan.");
             return;
@@ -46,7 +46,7 @@ public class PeminjamanService {
         System.out.println("User   : " + user.getNama());
 
         // 2. Tampilkan kendaraan tersedia
-        List<Kendaraan> tersedia = getKendaraanTersedia();
+        List<Kendaraan> tersedia = getDaftarKendaraanTersedia();
         if (tersedia.isEmpty()) {
             System.out.println("Tidak ada kendaraan yang tersedia saat ini.");
             return;
@@ -65,11 +65,7 @@ public class PeminjamanService {
         }
 
         // 4. Durasi pinjam
-        int durasi = InputHelper.inputInt("Durasi pinjam (hari)  : ");
-        if (durasi <= 0) {
-            System.out.println("Durasi tidak valid.");
-            return;
-        }
+        int durasi = InputHelper.inputInt("Durasi pinjam (hari)  : ", 1, 365);
 
         // 5. Buat peminjaman
         LocalDate tPinjam  = LocalDate.now();
@@ -80,14 +76,14 @@ public class PeminjamanService {
         kendaraan.pinjam();
 
         daftarPeminjaman.add(p);
-        DataLoader.savePeminjaman(daftarPeminjaman);
-        DataLoader.saveKendaraan(daftarKendaraan);
+        DataLoader.simpanPeminjaman(daftarPeminjaman);
+        DataLoader.simpanKendaraan(daftarKendaraan);
 
-        System.out.println("\n✓ Peminjaman berhasil!");
+        System.out.println("\nPeminjaman berhasil!");
         System.out.println("  ID Peminjaman    : " + idPeminjaman);
         System.out.println("  Kendaraan        : " + kendaraan.getNama());
-        System.out.println("  Tanggal Pinjam   : " + DateUtil.format(tPinjam));
-        System.out.println("  Rencana Kembali  : " + DateUtil.format(tRencana));
+        System.out.println("  Tanggal Pinjam   : " + DateUtil.format(tPinjam).orElse("-"));
+        System.out.println("  Rencana Kembali  : " + DateUtil.format(tRencana).orElse("-"));
         System.out.printf ("  Estimasi Biaya   : Rp%,d%n", (long)(durasi) * kendaraan.getTarifPerHari());
     }
 
@@ -95,7 +91,7 @@ public class PeminjamanService {
         System.out.println("\n========== KEMBALIKAN KENDARAAN ==========");
 
         // Tampilkan peminjaman aktif
-        List<Peminjaman> aktif = getPeminjamanAktif();
+        List<Peminjaman> aktif = getDaftarPeminjamanAktif();
         if (aktif.isEmpty()) {
             System.out.println("Tidak ada peminjaman aktif saat ini.");
             return;
@@ -126,13 +122,13 @@ public class PeminjamanService {
         peminjaman.selesaikan(tanggalAktual, denda);
         kendaraan.kembalikan();
 
-        DataLoader.savePeminjaman(daftarPeminjaman);
-        DataLoader.saveKendaraan(daftarKendaraan);
+        DataLoader.simpanPeminjaman(daftarPeminjaman);
+        DataLoader.simpanKendaraan(daftarKendaraan);
 
-        System.out.println("\n ✓ Pengembalian berhasil!");
+        System.out.println("\nPengembalian berhasil!");
         System.out.println("  Kendaraan        : " + kendaraan.getNama());
-        System.out.println("  Tanggal Kembali  : " + DateUtil.format(tanggalAktual).get());
-        System.out.println("  Rencana Kembali  : " + DateUtil.format(peminjaman.getTanggalKembaliRencana()).get());
+        System.out.println("  Tanggal Kembali  : " + DateUtil.format(tanggalAktual).orElse("-"));
+        System.out.println("  Rencana Kembali  : " + DateUtil.format(peminjaman.getTanggalKembaliRencana()).orElse("-"));
         if (denda > 0) {
             System.out.printf("  Denda Keterlambatan: Rp%,d%n", denda);
         } else {
@@ -154,12 +150,28 @@ public class PeminjamanService {
         Kendaraan k;
         if (pilihan == 1) {
             int kapasitas    = InputHelper.inputInt("Kapasitas penumpang: ");
-            String transmisi = InputHelper.inputString("Transmisi (MANUAL/OTOMATIS): ").toUpperCase();
-            k = new model.Mobil(id, nama, plat, tarif, kapasitas, Transmisi.valueOf(transmisi));
+            Transmisi transmisi;
+            try {
+                transmisi = Transmisi.valueOf(
+                    InputHelper.inputString("Transmisi (MANUAL/OTOMATIS): ").toUpperCase()
+                );
+            } catch (IllegalArgumentException e) {
+                System.out.println("Transmisi tidak valid. Pilihan: MANUAL, OTOMATIS");
+                return;
+            }
+            k = new model.Mobil(id, nama, plat, tarif, kapasitas, transmisi);
         } else if (pilihan == 2) {
             int cc           = InputHelper.inputInt("CC mesin: ");
-            String jenisMotor= InputHelper.inputString("Jenis motor (MATIC/MANUAL/SPORT): ").toUpperCase();
-            k = new model.Motor(id, nama, plat, tarif, cc, JenisMotor.valueOf(jenisMotor));
+            JenisMotor jenisMotor;
+            try {
+                jenisMotor = JenisMotor.valueOf(
+                    InputHelper.inputString("Jenis motor (MATIC/MANUAL/SPORT): ").toUpperCase()
+                );
+            } catch (IllegalArgumentException e) {
+                System.out.println("Jenis motor tidak valid. Pilihan: MATIC, MANUAL, SPORT");
+                return;
+            }
+            k = new model.Motor(id, nama, plat, tarif, cc, jenisMotor);
         } else {
             // Tidak akan tercapai karena inputInt(min=1, max=2)
             // tapi tetap eksplisit untuk kejelasan
@@ -167,7 +179,7 @@ public class PeminjamanService {
         }
 
         daftarKendaraan.add(k);
-        DataLoader.saveKendaraan(daftarKendaraan);
+        DataLoader.simpanKendaraan(daftarKendaraan);
         System.out.println("Kendaraan berhasil ditambahkan dengan ID: " + id);
     }
 
@@ -199,17 +211,17 @@ public class PeminjamanService {
         }
 
         daftarKendaraan.remove(target);
-        DataLoader.saveKendaraan(daftarKendaraan);
+        DataLoader.simpanKendaraan(daftarKendaraan);
         System.out.println("Kendaraan " + target.getNama() + " berhasil dihapus.");
     }
 
-    public List<Kendaraan> getKendaraanTersedia() {
+    public List<Kendaraan> getDaftarKendaraanTersedia() {
         return daftarKendaraan.stream()
             .filter(Kendaraan::isTersedia)
             .collect(Collectors.toList());
     }
 
-    public List<Peminjaman> getPeminjamanAktif() {
+    public List<Peminjaman> getDaftarPeminjamanAktif() {
         return daftarPeminjaman.stream()
             .filter(Peminjaman::isAktif)
             .collect(Collectors.toList());
@@ -235,8 +247,8 @@ public class PeminjamanService {
             .findFirst();
     }
 
-    private String generateId(List<?> list, String prefix,
-                           java.util.function.Function<Object, String> idExtractor) {
+    private <T> String generateId(List<T> list, String prefix,
+                           java.util.function.Function<T, String> idExtractor) {
         int max = list.stream()
             .map(idExtractor)
             .map(id -> id.replace(prefix, ""))
@@ -250,10 +262,10 @@ public class PeminjamanService {
     }
 
     private String generateIdPeminjaman() {
-        return generateId(daftarPeminjaman, "P", p -> ((Peminjaman) p).getId());
+        return generateId(daftarPeminjaman, "P", Peminjaman::getId);
     }
 
     private String generateIdKendaraan() {
-        return generateId(daftarKendaraan, "K", k -> ((Kendaraan) k).getId());
+        return generateId(daftarKendaraan, "K", Kendaraan::getId);
     }
 }

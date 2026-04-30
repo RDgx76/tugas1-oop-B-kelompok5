@@ -17,19 +17,33 @@ public class DataLoader {
         throw new AssertionError("DataLoader adalah utility class dan tidak boleh diinstansiasi");
     }
 
-    public static List<Kendaraan> loadKendaraan() {
+    public static List<Kendaraan> muatKendaraan() {
         List<Kendaraan> list = new ArrayList<>();
         String json = FileDatabase.readFile(PATH_KENDARAAN);
         for (String obj : FileDatabase.parseJsonArray(json)) {
-            JenisKendaraan jenis = JenisKendaraan.valueOf(
-                FileDatabase.getValue(obj, "jenis").toUpperCase()
-            );
             String id    = FileDatabase.getValue(obj, "id");
             String nama  = FileDatabase.getValue(obj, "nama");
             String plat  = FileDatabase.getValue(obj, "platNomor");
-            StatusKendaraan status= StatusKendaraan.valueOf(
-                FileDatabase.getValue(obj, "status").toUpperCase()
-            );
+            JenisKendaraan jenis;
+            try {
+                jenis = JenisKendaraan.valueOf(
+                    FileDatabase.getValue(obj, "jenis").toUpperCase()
+                );
+            } catch (IllegalArgumentException e) {
+                throw new IllegalStateException(
+                    "Jenis kendaraan tidak valid di JSON", e
+                );
+            }
+            StatusKendaraan status;
+            try {
+                status = StatusKendaraan.valueOf(
+                    FileDatabase.getValue(obj, "status").toUpperCase()
+                );
+            } catch (IllegalArgumentException e) {
+                throw new IllegalStateException(
+                    "Status kendaraan tidak valid untuk id='" + id + "'", e
+                );
+            }
             long tarif;
             try {
                 tarif = Long.parseLong(FileDatabase.getValue(obj, "tarifPerHari"));
@@ -42,28 +56,55 @@ public class DataLoader {
             Kendaraan k;
             switch (jenis) {
                 case MOBIL:
-                    int kapasitas = Integer.parseInt(FileDatabase.getValue(obj, "kapasitasPenumpang"));
-                    Transmisi transmisi = Transmisi.valueOf(
-                        FileDatabase.getValue(obj, "transmisi").toUpperCase()
-                    );
-                    k = new Mobil(id, nama, plat, tarif, kapasitas, transmisi);
+                    int kapasitas;
+                    try {
+                        kapasitas = Integer.parseInt(FileDatabase.getValue(obj, "kapasitasPenumpang"));
+                    } catch (NumberFormatException e) {
+                        throw new IllegalStateException(
+                            "Data korup: kapasitasPenumpang tidak valid untuk kendaraan id='" + id + "'", e
+                        );
+                    }
+                    Transmisi transmisi;
+                    try {
+                        transmisi = Transmisi.valueOf(
+                            FileDatabase.getValue(obj, "transmisi").toUpperCase()
+                        );
+                    } catch (IllegalArgumentException e) {
+                        throw new IllegalStateException(
+                            "Transmisi tidak valid untuk kendaraan id='" + id + "'", e
+                        );
+                    }
+                    k = new Mobil(id, nama, plat, tarif, kapasitas, transmisi, status);
                     break;
                 case MOTOR:
-                    int kapasitasCc = Integer.parseInt(FileDatabase.getValue(obj, "kapasitasCc"));
-                    JenisMotor jenisMotor= JenisMotor.valueOf(
-                        FileDatabase.getValue(obj, "jenisMotor").toUpperCase()
-                    );
-                    k = new Motor(id, nama, plat, tarif, kapasitasCc, jenisMotor);
+                    int kapasitasCc;
+                    try {
+                        kapasitasCc = Integer.parseInt(FileDatabase.getValue(obj, "kapasitasCc"));
+                    } catch (NumberFormatException e) {
+                        throw new IllegalStateException(
+                            "Data korup: kapasitasCc tidak valid untuk motor id='" + id + "'", e
+                        );
+                    }
+                    JenisMotor jenisMotor;
+                    try {
+                        jenisMotor = JenisMotor.valueOf(
+                            FileDatabase.getValue(obj, "jenisMotor").toUpperCase()
+                        );
+                    } catch (IllegalArgumentException e) {
+                        throw new IllegalStateException(
+                            "JenisMotor tidak valid untuk motor id='" + id + "'", e
+                        );
+                    }
+                    k = new Motor(id, nama, plat, tarif, kapasitasCc, jenisMotor, status);
                     break;
                 default: throw new IllegalStateException("Jenis tidak ditangani: " + jenis);
             }
-            k.setStatus(status);
             list.add(k);
         }
         return list;
     }
 
-    public static List<User> loadUser() {
+    public static List<User> muatUser() {
         List<User> list = new ArrayList<>();
         String json = FileDatabase.readFile(PATH_USER);
         for (String obj : FileDatabase.parseJsonArray(json)) {
@@ -75,7 +116,7 @@ public class DataLoader {
         return list;
     }
 
-    public static List<Peminjaman> loadPeminjaman() {
+    public static List<Peminjaman> muatPeminjaman() {
         List<Peminjaman> list = new ArrayList<>();
         String json = FileDatabase.readFile(PATH_PEMINJAMAN);
         for (String obj : FileDatabase.parseJsonArray(json)) {
@@ -85,10 +126,24 @@ public class DataLoader {
             String strTanggalPinjam     = FileDatabase.getValue(obj, "tanggalPinjam");
             String strTanggalRencana    = FileDatabase.getValue(obj, "tanggalKembaliRencana");
             String strTanggalAktual     = FileDatabase.getValue(obj, "tanggalKembaliAktual");
-            StatusPeminjaman status     = StatusPeminjaman.valueOf(
+            StatusPeminjaman status;
+            try {
+                status = StatusPeminjaman.valueOf(
                     FileDatabase.getValue(obj, "status").toUpperCase()
-            );
-            long denda                  = Long.parseLong(FileDatabase.getValue(obj, "denda"));
+                );
+            } catch (IllegalArgumentException e) {
+                throw new IllegalStateException(
+                    "Status peminjaman tidak valid untuk id='" + id + "'", e
+                );
+            }
+            long denda;
+            try {
+                denda = Long.parseLong(FileDatabase.getValue(obj, "denda"));
+            } catch (NumberFormatException e) {
+                throw new IllegalStateException(
+                    "Data korup: denda tidak valid untuk peminjaman id='" + id + "'", e
+                );
+            }
 
             LocalDate tanggalPinjam = DateUtil.parse(strTanggalPinjam)
                 .orElseThrow(() -> new IllegalStateException(
@@ -99,31 +154,26 @@ public class DataLoader {
                         "tanggalKembaliRencana tidak valid untuk peminjaman id='" + id + "'"
                 ));
 
-            Peminjaman p = new Peminjaman(id, idUser, idKendaraan,
-                    tanggalPinjam, tanggalRencana);
+            LocalDate tanggalKembaliAktual = DateUtil.parse(strTanggalAktual)
+                .orElse(null);
 
-            p.setStatus(status);
-            p.setDenda(denda);
-            DateUtil.parse(strTanggalAktual).ifPresent(tgl ->
-                p.selesaikan(tgl, denda)
-            );
+            Peminjaman p = new Peminjaman(id, idUser, idKendaraan,
+                    tanggalPinjam, tanggalRencana, tanggalKembaliAktual,status, denda);
 
             list.add(p);
         }
         return list;
     }
 
-    public static void saveKendaraan(List<Kendaraan> list) {
+    public static void simpanKendaraan(List<Kendaraan> list) {
         List<String> objects = new ArrayList<>();
         for (Kendaraan k : list) {
-            objects.add(FileDatabase.buildObject(
-                k.toJsonEntries().toArray(new String[0])
-            ));
+            objects.add(FileDatabase.buildObjectFromMap(k.toJsonMap()));
         }
         FileDatabase.writeFile(PATH_KENDARAAN, FileDatabase.buildArray(objects));
     }
 
-    public static void saveUser(List<User> list) {
+    public static void simpanUser(List<User> list) {
         List<String> objects = new ArrayList<>();
         for (User u : list) {
             objects.add(FileDatabase.buildObject(
@@ -135,7 +185,7 @@ public class DataLoader {
         FileDatabase.writeFile(PATH_USER, FileDatabase.buildArray(objects));
     }
 
-    public static void savePeminjaman(List<Peminjaman> list) {
+    public static void simpanPeminjaman(List<Peminjaman> list) {
         List<String> objects = new ArrayList<>();
         for (Peminjaman p : list) {
             objects.add(FileDatabase.buildObject(
@@ -155,7 +205,7 @@ public class DataLoader {
                             ))
                     ),
                     FileDatabase.buildEntry("tanggalKembaliAktual", DateUtil.format(p.getTanggalKembaliAktual().orElse(null)).orElse("null")),
-                    FileDatabase.buildEntry("status", p.getStatus().name().toLowerCase()),
+                    FileDatabase.buildEntry("status", p.getStatus().name()),
                     FileDatabase.buildEntryLong("denda", p.getDenda())
             ));
         }

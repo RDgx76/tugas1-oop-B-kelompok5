@@ -1,19 +1,21 @@
 package model;
 
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 
-public abstract class Kendaraan {
+public abstract class Kendaraan implements JsonSerializable {
     private final String id;
-    private String nama;
+    private final String nama;
     private final String platNomor;
-    private StatusKendaraan status; // "TERSEDIA" atau "DIPINJAM"
-    private long tarifPerHari;
+    private final long tarifPerHari;
+    private StatusKendaraan status; 
 
-    public Kendaraan(String id, String nama, String platNomor, long tarifPerHari) {
+    public Kendaraan(String id, String nama, String platNomor, long tarifPerHari, StatusKendaraan status) {
         Objects.requireNonNull(id, "ID tidak boleh null");
         Objects.requireNonNull(nama, "Nama tidak boleh null");
         Objects.requireNonNull(platNomor, "Plat nomor tidak boleh null");
+        Objects.requireNonNull(status, "Status kendaraan tidak boleh null");
         
         if (id.isBlank())       throw new IllegalArgumentException("ID tidak boleh kosong");
         if (nama.isBlank())     throw new IllegalArgumentException("Nama tidak boleh kosong");
@@ -23,13 +25,16 @@ public abstract class Kendaraan {
         this.id = id;
         this.nama = nama;
         this.platNomor = platNomor;
-        this.status = StatusKendaraan.TERSEDIA;
+        this.status = status;
         this.tarifPerHari = tarifPerHari;
+    }
+
+    public Kendaraan(String id, String nama, String platNomor, long tarifPerHari) { 
+        this(id, nama, platNomor, tarifPerHari, StatusKendaraan.TERSEDIA);
     }
 
     // Abstract method, wajib diimplementasi subclass
     public abstract JenisKendaraan getJenis();
-    public abstract List<String> toJsonEntries();
 
     // Getters
     public String getId() { return id; }
@@ -39,15 +44,9 @@ public abstract class Kendaraan {
     public long getTarifPerHari() { return tarifPerHari; }
 
     // Setters
-    public void setStatus(StatusKendaraan status) { 
+    private void setStatus(StatusKendaraan status) { 
         Objects.requireNonNull(status, "Status tidak boleh null");
         this.status = status; 
-    }
-    public void setTarifPerHari(long tarifPerHari) {
-        if (tarifPerHari <= 0) {
-            throw new IllegalArgumentException("Tarif harus lebih dari 0, diterima: " + tarifPerHari);
-        } 
-        this.tarifPerHari = tarifPerHari; 
     }
 
     public void pinjam() {
@@ -72,10 +71,26 @@ public abstract class Kendaraan {
         return this.status == StatusKendaraan.TERSEDIA;
     }
 
+    // Field umum semua kendaraan dikumpulkan di method helper
+    protected Map<String, String> baseJsonMap() {
+        Map<String, String> map = new LinkedHashMap<>(); // LinkedHashMap — urutan terjaga
+        map.put("id",           getId());
+        map.put("nama",         getNama());
+        map.put("platNomor",    getPlatNomor());
+        map.put("jenis",        getJenis().name());
+        map.put("status",       getStatus().name());
+        map.put("tarifPerHari", String.valueOf(getTarifPerHari()));
+        return map;
+    }
+
+    // Subclass wajib implementasi — menambahkan field spesifiknya sendiri
+    @Override
+    public abstract Map<String, String> toJsonMap();
+
     @Override
     public String toString() {
         return String.format("[%s] %s | %s | %s | Rp%,d/hari",
-                id, nama, platNomor, status, tarifPerHari);
+                id, nama, platNomor, status.name(), tarifPerHari);
     }
 
     @Override

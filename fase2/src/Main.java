@@ -8,14 +8,26 @@ import service.UserService;
 import util.InputHelper;
 import util.ConsoleUtil;
 
+import java.io.UncheckedIOException;
 import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
         // Semua dibuat lokal di main(), lalu diteruskan sebagai parameter
-        List<Kendaraan>  kendaraan  = DataLoader.loadKendaraan();
-        List<User>       users      = DataLoader.loadUser();
-        List<Peminjaman> peminjaman = DataLoader.loadPeminjaman();
+        List<Kendaraan>  kendaraan;
+        List<User>       users;
+        List<Peminjaman> peminjaman;
+
+        try {
+            kendaraan  = DataLoader.muatKendaraan();
+            users      = DataLoader.muatUser();
+            peminjaman = DataLoader.muatPeminjaman();
+        } catch (UncheckedIOException e) {
+            System.out.println("Gagal memuat data: " + e.getMessage());
+            System.out.println("Pastikan folder 'data/' dapat diakses.");
+            System.exit(1);
+            return; // Agar compiler tahu variabel sudah diinisialisasi
+        }
 
         UserService userService = new UserService(users);
 
@@ -27,14 +39,7 @@ public class Main {
             peminjamanService, userService
         );
 
-        System.out.println("==============================================");
-        System.out.println("   SISTEM PEMINJAMAN KENDARAAN               ");
-        System.out.println("==============================================");
-        System.out.println("Data dimuat: "
-                + kendaraan.size()  + " kendaraan, "
-                + users.size()      + " user, "
-                + peminjaman.size() + " transaksi.");
-
+        tampilkanHeader(kendaraan.size(), users.size(), peminjaman.size());
         menuUtama(peminjamanService, userService, laporanGenerator);
     }
 
@@ -58,10 +63,10 @@ public class Main {
                         menuKendaraan(peminjamanService);
                         break;
                 case 2: 
-                        menuUser(userService);   
+                        menuUser(userService, peminjamanService);   
                         break;
                 case 3: 
-                        menuTransaksi(peminjamanService);
+                        menuTransaksi(peminjamanService, laporanGenerator);
                         break;
                 case 4: 
                         menuLaporan(laporanGenerator);
@@ -70,7 +75,7 @@ public class Main {
                     System.out.println("Terima kasih. Program selesai.");
                     return;
                 default:
-                    System.out.println("Pilihan tidak valid.");
+                    throw new AssertionError("Pilihan di luar range: " + pilihan);
             }
         }
     }
@@ -100,12 +105,12 @@ public class Main {
                     ConsoleUtil.pauseScreen();        
                     break;
                 case 0: return;
-                default: System.out.println("Pilihan tidak valid.");
+                default: throw new AssertionError("Pilihan di luar range: " + pilihan);
             }
         }
     }
 
-    private static void menuUser(UserService userService) {
+    private static void menuUser(UserService userService, PeminjamanService peminjamanService) {
         while (true) {
             ConsoleUtil.clearScreen();
             System.out.println("\n---------- MANAJEMEN USER ----------");
@@ -126,16 +131,16 @@ public class Main {
                     ConsoleUtil.pauseScreen();
                     break;
                 case 3: 
-                    userService.hapusUser();
+                    prosesHapusUser(userService, peminjamanService);;
                     ConsoleUtil.pauseScreen();
                     break;
                 case 0: return;
-                default: System.out.println("Pilihan tidak valid.");
+                default: throw new AssertionError("Pilihan di luar range: " + pilihan);
             }
         }
     }
 
-    private static void menuTransaksi(PeminjamanService peminjamanService) {
+    private static void menuTransaksi(PeminjamanService peminjamanService, LaporanGenerator laporanGenerator) {
         while (true) {
             ConsoleUtil.clearScreen();
             System.out.println("\n--------- TRANSAKSI PEMINJAMAN ---------");
@@ -156,14 +161,11 @@ public class Main {
                     ConsoleUtil.pauseScreen();
                     break;
                 case 3:
-                    System.out.println("\nPeminjaman Aktif:");
-                    for (Peminjaman p : peminjamanService.getPeminjamanAktif()) {
-                        System.out.println("  " + p);
-                    }
+                    laporanGenerator.tampilkanPeminjamanAktif();
                     ConsoleUtil.pauseScreen();
                     break;
                 case 0: return;
-                default: System.out.println("Pilihan tidak valid.");
+                default: throw new AssertionError("Pilihan di luar range: " + pilihan);
             }
         }
     }
@@ -182,15 +184,15 @@ public class Main {
 
             switch (pilihan) {
                 case 1: 
-                    laporanGenerator.laporanSemuaPeminjaman(); 
+                    laporanGenerator.tampilkanSemuaPeminjaman(); 
                     ConsoleUtil.pauseScreen();
                     break;
                 case 2: 
-                    laporanGenerator.laporanPeminjamanAktif();
+                    laporanGenerator.tampilkanPeminjamanAktif();
                     ConsoleUtil.pauseScreen(); 
                     break;
                 case 3:
-                    laporanGenerator.laporanPendapatan();
+                    laporanGenerator.tampilkanLaporanPendapatan();
                     ConsoleUtil.pauseScreen();
                     break;
                 case 4: 
@@ -198,8 +200,44 @@ public class Main {
                     ConsoleUtil.pauseScreen();
                     break;
                 case 0: return;
-                default: System.out.println("Pilihan tidak valid.");
+                default: throw new AssertionError("Pilihan di luar range: " + pilihan);
             }
         }
+    }
+
+    // Method khusus untuk koordinasi hapus user
+    private static void prosesHapusUser(UserService userService,
+                                        PeminjamanService peminjamanService) {
+        userService.tampilkanSemuaUser();
+        if (userService.getDaftarUser().isEmpty()) return;
+
+        String id = InputHelper.inputString("\nMasukkan ID user yang akan dihapus: ");
+
+        boolean masihAktif = peminjamanService.getDaftarPeminjamanAktif()
+            .stream()
+            .anyMatch(p -> p.getIdUser().equals(id));
+
+        if (masihAktif) {
+            System.out.println("User tidak dapat dihapus karena masih memiliki peminjaman aktif.");
+            return;
+        }
+
+        if (userService.hapusUser(id)) {
+            System.out.println("User berhasil dihapus.");
+        } else {
+            System.out.println("User dengan ID " + id + " tidak ditemukan.");
+        }
+    }
+
+    private static void tampilkanHeader(int jumlahKendaraan,
+                                     int jumlahUser,
+                                     int jumlahTransaksi) {
+        System.out.println("==============================================");
+        System.out.println("   SISTEM PEMINJAMAN KENDARAAN               ");
+        System.out.println("==============================================");
+        System.out.println("Data dimuat: "
+            + jumlahKendaraan + " kendaraan, "
+            + jumlahUser      + " user, "
+            + jumlahTransaksi + " transaksi.");
     }
 }

@@ -58,14 +58,4 @@ public class DateUtil {
         Objects.requireNonNull(ke, "Parameter 'ke' tidak boleh null");
         return ChronoUnit.DAYS.between(dari, ke);
     }
-
-    /**
-     * Mendapatkan tanggal saat ini dari jam sistem di zona waktu default.
-     *
-     * @return objek {@link LocalDate} yang mewakili tanggal hari ini.
-     * @see LocalDate#now()
-     */
-    public static LocalDate hariIni() {
-        return LocalDate.now();
-    }
 }

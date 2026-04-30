@@ -25,11 +25,17 @@ vehicle-rental-system/
 │   ├── Main.java                       # Entry point & menu utama
 │   │
 │   ├── model/
+│   │   ├── JsonSerializable.java       # Interface class JsonSerializable
 │   │   ├── Kendaraan.java              # Abstract class kendaraan
 │   │   ├── Mobil.java                  # Subclass mobil
 │   │   ├── Motor.java                  # Subclass motor
 │   │   ├── User.java                   # Data peminjam
-│   │   └── Peminjaman.java             # Record transaksi
+│   │   ├── Peminjaman.java             # Record transaksi
+│   │   ├── JenisKendaraan.java         # Enum untuk jenis kendaraan
+│   │   ├── JenisMotor.java             # Enum untuk jenis motor
+│   │   ├── Trasmisi.java               # Enum untuk transmisi
+│   │   ├── StatusKendaraan.java        # Enum untuk status kendaraan
+│   │   └── StatusPeminjaman.java       # Enum untuk status peminjaman     
 │   │
 │   ├── service/
 │   │   ├── PeminjamanService.java      # Logika bisnis peminjaman
@@ -45,6 +51,7 @@ vehicle-rental-system/
 │   │
 │   └── util/
 │       ├── InputHelper.java            # Wrapper input Scanner
+│       ├── ConsoleUtil.java            # Utilitas console
 │       └── DateUtil.java               # Utilitas tanggal
 │
 └── data/
@@ -59,11 +66,11 @@ vehicle-rental-system/
 
 | Konsep | Implementasi |
 |--------|-------------|
-| **Inheritance** | `Mobil` dan `Motor` extends `Kendaraan` |
-| **Abstraction** | `Kendaraan` sebagai abstract class |
-| **Encapsulation** | Semua atribut model menggunakan getter/setter |
-| **Polymorphism** | Method kendaraan dipanggil dari referensi parent class |
-| **Separation of Concerns** | Model, Service, Database, dan UI dipisah lapisan |
+| **Inheritance** | `Mobil` dan `Motor` extends `Kendaraan`; constructor chaining via `super()` memastikan validasi terpusat di parent class |
+| **Abstraction** | `Kendaraan` sebagai abstract class dengan method abstract `getJenis()`; interface `JsonSerializable` sebagai kontrak serialisasi; enum menyembunyikan nilai konstanta (`StatusKendaraan`, `StatusPeminjaman`, `Transmisi`, dll) |
+| **Encapsulation** | Field private dengan akses terkontrol melalui method bisnis (`pinjam()`, `kembalikan()`, `selesaikan()`); setter dijadikan `private` atau dihapus; collection dikembalikan sebagai `unmodifiableList` |
+| **Polymorphism** | Method `getJenis()`, `toJsonMap()`, dan `toString()` di-override di `Mobil` dan `Motor` dan dipanggil dari referensi `Kendaraan`; interface `JsonSerializable` memungkinkan polimorfisme lintas hierarki |
+| **Separation of Concerns** | Model, Service, Database, Report, dan UI dipisah per lapisan; dependency mengalir satu arah, maksudnya Database bergantung ke Model via interface, bukan sebaliknya |
 
 ---
 
@@ -188,6 +195,7 @@ java -cp out Main
 - File JSON di folder `data/` dibuat otomatis saat pertama kali program dijalankan jika belum ada.
 - Denda dihitung berdasarkan keterlambatan per hari dari tanggal rencana kembali.
 - Semua input user divalidasi sebelum diproses.
+- Belum ada fitur edit informasi pada program ini.
 
 ---
 

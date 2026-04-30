@@ -1,5 +1,5 @@
 package model;
 
 public enum StatusPeminjaman {
-    AKTIF, SELESAI;
+    AKTIF, SELESAI
 }

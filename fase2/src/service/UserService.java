@@ -29,7 +29,7 @@ public class UserService {
         }
     }
 
-    public Optional<User> cariById(String id) {
+    public Optional<User> cariUserById(String id) {
         Objects.requireNonNull(id, "ID tidak boleh null");
 
         return users.stream()
@@ -39,47 +39,53 @@ public class UserService {
 
     public void tambahUser() {
         System.out.println("\n--- Tambah User Baru ---");
-        String id = generateId();
         String nama = InputHelper.inputString("Nama       : ");
         String telp = InputHelper.inputString("No. Telepon: ");
 
-        User user = new User(id, nama, telp);
-        users.add(user);
-        DataLoader.saveUser(users);
-        System.out.println("User berhasil ditambahkan dengan ID: " + id);
-    }
-
-    public void hapusUser() {
-        tampilkanSemuaUser();
-        if (users.isEmpty()) return;
-
-        String id = InputHelper.inputString("\nMasukkan ID user yang akan dihapus: ");
-        User target = cariById(id).orElse(null);
-
-        if (target == null) {
-            System.out.println("User dengan ID " + id + " tidak ditemukan.");
+        boolean sudahAda = users.stream()
+            .anyMatch(u -> u.getNoTelepon().equals(telp));
+        if (sudahAda) {
+            System.out.println("Tidak dapat menambahkan user baru. Nomor telepon sudah terdaftar.");
             return;
         }
 
-        users.remove(target);
-        DataLoader.saveUser(users);
-        System.out.println("User " + target.getNama() + " berhasil dihapus.");
+        if (!telp.matches("^08\\d{8,11}$")) {
+            System.out.println("Tidak dapat menambahkan user baru. Format nomor telepon tidak valid.\nContoh nomor telepon valid adalah 081234678");
+            return;
+        }
+
+        String id = generateId();
+        User user = new User(id, nama, telp);
+        users.add(user);
+        DataLoader.simpanUser(users);
+        System.out.println("User berhasil ditambahkan dengan ID: " + id);
     }
 
-    public List<User> getUsers() {
+    public boolean hapusUser(String id) {
+        User target = cariUserById(id).orElse(null);
+        if (target == null) return false;
+
+        users.remove(target);
+        DataLoader.simpanUser(users);
+        return true;
+    }
+
+    public List<User> getDaftarUser() {
         return Collections.unmodifiableList(users);
     }
 
     private String generateId() {
-        int max = 0;
-        for (User u : users) {
-            try {
-                int num = Integer.parseInt(u.getId().replace("U", ""));
-                if (num > max) max = num;
-            } catch (NumberFormatException e) {
-                System.err.println("Peringatan: ID user tidak mengikuti format standar: " + u.getId());
-            }
-        }
+        int max = users.stream()
+            .map(u -> u.getId().replace("U", ""))
+            .mapToInt(s -> {
+                try { return Integer.parseInt(s); }
+                catch (NumberFormatException e) {
+                    System.err.println("Peringatan: ID tidak standar: " + s);
+                    return 0;
+                }
+            })
+            .max()
+            .orElse(0);
         return String.format("U%03d", max + 1);
     }
 }

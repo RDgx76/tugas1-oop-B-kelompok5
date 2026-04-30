@@ -5,22 +5,24 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class Peminjaman {
-    private String id;
-    private String idUser;
-    private String idKendaraan;
-    private LocalDate tanggalPinjam;
-    private LocalDate tanggalKembaliRencana;
+    private final String id;
+    private final String idUser;
+    private final String idKendaraan;
+    private final LocalDate tanggalPinjam;
+    private final LocalDate tanggalKembaliRencana;
     private LocalDate tanggalKembaliAktual; // null kalau belum dikembalikan
     private StatusPeminjaman status;
     private long denda;
 
     public Peminjaman(String id, String idUser, String idKendaraan,
-                      LocalDate tanggalPinjam, LocalDate tanggalKembaliRencana) {
+                      LocalDate tanggalPinjam, LocalDate tanggalKembaliRencana, LocalDate tanggalKembaliAktual, StatusPeminjaman status, long denda) {
         Objects.requireNonNull(id, "ID tidak boleh null");
         Objects.requireNonNull(idUser, "ID user tidak boleh null");
         Objects.requireNonNull(idKendaraan, "ID kendaraan tidak boleh null");
         Objects.requireNonNull(tanggalPinjam, "Tanggal pinjam tidak boleh null");
         Objects.requireNonNull(tanggalKembaliRencana, "Tanggal kembali rencana tidak boleh null");
+        Objects.requireNonNull(status, "Status peminjaman tidak boleh null");
+
 
         if (id.isBlank())          throw new IllegalArgumentException("ID tidak boleh kosong");
         if (idUser.isBlank())      throw new IllegalArgumentException("ID user tidak boleh kosong");
@@ -30,15 +32,36 @@ public class Peminjaman {
                 "Tanggal kembali rencana harus setelah tanggal pinjam"
             );
         }
+        if (denda < 0) {
+            throw new IllegalArgumentException("Denda tidak boleh negatif");
+        }
+        // Validasi konsistensi status dengan field lain
+        if (status == StatusPeminjaman.SELESAI && tanggalKembaliAktual == null) {
+            throw new IllegalArgumentException(
+                "Peminjaman SELESAI harus memiliki tanggal kembali aktual"
+            );
+        }
+        if (status == StatusPeminjaman.AKTIF && tanggalKembaliAktual != null) {
+            throw new IllegalArgumentException(
+                "Peminjaman AKTIF tidak boleh memiliki tanggal kembali aktual"
+            );
+        }
+
 
         this.id = id;
         this.idUser = idUser;
         this.idKendaraan = idKendaraan;
         this.tanggalPinjam = tanggalPinjam;
         this.tanggalKembaliRencana = tanggalKembaliRencana;
-        this.tanggalKembaliAktual = null;
-        this.status = StatusPeminjaman.AKTIF;
-        this.denda = 0;
+        this.tanggalKembaliAktual = tanggalKembaliAktual;
+        this.status = status;
+        this.denda = denda;
+    }
+
+    public Peminjaman(String id, String idUser, String idKendaraan,
+                      LocalDate tanggalPinjam, LocalDate tanggalKembaliRencana) {
+        this(id, idUser, idKendaraan, tanggalPinjam, tanggalKembaliRencana, null, StatusPeminjaman.AKTIF, 0L);
+                      
     }
 
     // Getters
@@ -52,14 +75,14 @@ public class Peminjaman {
     public long getDenda() { return denda; }
 
     // Setters
-    public void setTanggalKembaliAktual(LocalDate tanggalKembaliAktual) {
+    private void setTanggalKembaliAktual(LocalDate tanggalKembaliAktual) {
         this.tanggalKembaliAktual = tanggalKembaliAktual;
     }
-    public void setStatus(StatusPeminjaman status) {
+    private void setStatus(StatusPeminjaman status) {
         Objects.requireNonNull(status, "Status tidak boleh null"); 
         this.status = status; 
     }
-    public void setDenda(long denda) {
+    private void setDenda(long denda) {
         if (denda < 0) {
             throw new IllegalArgumentException(
                 "Denda tidak boleh negatif, diterima: " + denda
@@ -78,16 +101,21 @@ public class Peminjaman {
         if (this.status == StatusPeminjaman.SELESAI) {
             throw new IllegalStateException("Peminjaman sudah selesai sebelumnya");
         }
+       if (tanggalKembaliAktual.isBefore(tanggalPinjam)) {
+            throw new IllegalArgumentException(
+            "Tanggal kembali aktual tidak boleh sebelum tanggal pinjam"
+            );
+        }
 
-        this.tanggalKembaliAktual = tanggalKembaliAktual;
-        this.denda = denda;
-        this.status = StatusPeminjaman.SELESAI;
+        setTanggalKembaliAktual(tanggalKembaliAktual);
+        setDenda(denda);
+        setStatus(StatusPeminjaman.SELESAI);
     }
 
     @Override
     public String toString() {
         return String.format("[%s] User: %s | Kendaraan: %s | Pinjam: %s | Rencana Kembali: %s | Status: %s | Denda: Rp%,d",
-                id, idUser, idKendaraan, tanggalPinjam, tanggalKembaliRencana, status, denda);
+                id, idUser, idKendaraan, tanggalPinjam, tanggalKembaliRencana, status.name(), denda);
     }
 
     @Override

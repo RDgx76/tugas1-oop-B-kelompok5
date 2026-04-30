@@ -8,22 +8,22 @@ import service.PeminjamanService;
 import service.UserService;
 import util.DateUtil;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 public class LaporanGenerator {
     private final PeminjamanService peminjamanService;
     private final UserService       userService;
 
     public LaporanGenerator(PeminjamanService peminjamanService, UserService userService) {
+        Objects.requireNonNull(peminjamanService, "PeminjamanService tidak boleh null");
+        Objects.requireNonNull(userService, "UserService tidak boleh null");
         this.peminjamanService = peminjamanService;
         this.userService       = userService;
     }
 
-    public void laporanSemuaPeminjaman() {
+    public void tampilkanSemuaPeminjaman() {
         List<Peminjaman> semua = peminjamanService.getDaftarPeminjaman();
         System.out.println("\n========================================");
         System.out.println("       LAPORAN SEMUA PEMINJAMAN         ");
@@ -33,14 +33,14 @@ public class LaporanGenerator {
             return;
         }
         for (Peminjaman p : semua) {
-            cetakDetailPeminjaman(p);
+            tampilkanDetailPeminjaman(p);
         }
         System.out.println("========================================");
         System.out.println("Total transaksi: " + semua.size());
     }
 
-    public void laporanPeminjamanAktif() {
-        List<Peminjaman> aktif = peminjamanService.getPeminjamanAktif();
+    public void tampilkanPeminjamanAktif() {
+        List<Peminjaman> aktif = peminjamanService.getDaftarPeminjamanAktif();
         System.out.println("\n========================================");
         System.out.println("      LAPORAN PEMINJAMAN AKTIF          ");
         System.out.println("========================================");
@@ -49,13 +49,13 @@ public class LaporanGenerator {
             return;
         }
         for (Peminjaman p : aktif) {
-            cetakDetailPeminjaman(p);
+            tampilkanDetailPeminjaman(p);
         }
         System.out.println("========================================");
         System.out.println("Total aktif: " + aktif.size());
     }
 
-    public void laporanPendapatan() {
+    public void tampilkanLaporanPendapatan() {
         List<Peminjaman> semua = peminjamanService.getDaftarPeminjaman();
         long totalDenda   = 0;
         long totalPendapatan = 0;
@@ -72,9 +72,8 @@ public class LaporanGenerator {
                 if (k != null && p.getTanggalKembaliAktual().isPresent()) {
                     long hari = DateUtil.hitungSelisihHari(p.getTanggalPinjam(), p.getTanggalKembaliAktual().get());
                     if (hari <= 0) hari = 1;
-                    totalPendapatan += hari * k.getTarifPerHari();
+                    totalPendapatan += (hari * k.getTarifPerHari()) + p.getDenda();
                 }
-                totalPendapatan += p.getDenda();
             }
         }
 
@@ -115,23 +114,20 @@ public class LaporanGenerator {
         sb.append("\n");
         sb.append("DAFTAR USER\n");
         sb.append("----------------------------------------\n");
-        for (User u : userService.getUsers()) {
+        for (User u : userService.getDaftarUser()) {
             sb.append(u.toString()).append("\n");
         }
 
         try {
-            new java.io.File("data").mkdirs();
-            try (FileWriter fw = new FileWriter(namaFile, StandardCharsets.UTF_8)) {
-                fw.write(sb.toString());
-                System.out.println("Laporan berhasil diekspor ke: " + namaFile);
-            }
-        } catch (IOException e) {
+            database.FileDatabase.writeFile(namaFile, sb.toString());
+            System.out.println("Laporan berhasil diekspor ke: " + namaFile);
+        } catch (java.io.UncheckedIOException e) {
             System.out.println("Gagal mengekspor laporan: " + e.getMessage());
         }
     }
 
-    private void cetakDetailPeminjaman(Peminjaman p) {
-        User u      = userService.cariById(p.getIdUser()).orElse(null);
+    private void tampilkanDetailPeminjaman(Peminjaman p) {
+        User u      = userService.cariUserById(p.getIdUser()).orElse(null);
         String nama = (u != null) ? u.getNama() : "Unknown";
         System.out.println("  ID  : " + p.getId() + " | Status: " + p.getStatus().name());
         System.out.println("  User: " + nama + " (" + p.getIdUser() + ")");
@@ -144,9 +140,9 @@ public class LaporanGenerator {
     }
 
     private Kendaraan cariKendaraan(List<Kendaraan> list, String id) {
-        for (Kendaraan k : list) {
-            if (k.getId().equals(id)) return k;
-        }
-        return null;
+        return list.stream()
+            .filter(k -> k.getId().equals(id))
+            .findFirst()
+            .orElse(null);
     }
 }

@@ -4,8 +4,8 @@ import java.util.Objects;
 
 public class User {
     private final String id;
-    private String nama;
-    private String noTelepon;
+    private final String nama;
+    private final String noTelepon;
 
     public User(String id, String nama, String noTelepon) {
         Objects.requireNonNull(id, "ID tidak boleh null");
@@ -25,20 +25,6 @@ public class User {
     public String getId() { return id; }
     public String getNama() { return nama; }
     public String getNoTelepon() { return noTelepon; }
-
-    // Setters
-    public void setNama(String nama) { 
-        Objects.requireNonNull(nama, "Nama tidak boleh null");
-        if (nama.isBlank()) throw new IllegalArgumentException("Nama tidak boleh kosong");
-
-        this.nama = nama; 
-    }
-    public void setNoTelepon(String noTelepon) { 
-        Objects.requireNonNull(noTelepon, "Nomor telepon tidak boleh null");
-        if (noTelepon.isBlank()) throw new IllegalArgumentException("Nomor telepon tidak boleh kosong");
-
-        this.noTelepon = noTelepon; 
-    }
 
     @Override
     public String toString() {

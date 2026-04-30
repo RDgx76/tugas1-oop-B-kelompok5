@@ -3,6 +3,9 @@ package database;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
 
 public class FileDatabase {
 
@@ -44,8 +47,8 @@ public class FileDatabase {
      * Input : [{"a":"1"},{"b":"2"}]
      * Output: ["{\"a\":\"1\"}", "{\"b\":\"2\"}"]
      */
-    public static java.util.List<String> parseJsonArray(String json) {
-        java.util.List<String> list = new java.util.ArrayList<>();
+    public static List<String> parseJsonArray(String json) {
+        java.util.List<String> list = new ArrayList<>();
         json = json.trim();
         if (json.equals("[]") || json.isEmpty()) return list;
 
@@ -79,7 +82,7 @@ public class FileDatabase {
         if (keyIndex == -1) return null;
 
         int colonIndex = json.indexOf(":", keyIndex + search.length());
-        if (colonIndex == -1) return "";
+        if (colonIndex == -1) return null;
 
         int valueStart = colonIndex + 1;
         while (valueStart < json.length() && json.charAt(valueStart) == ' ') valueStart++;
@@ -129,5 +132,30 @@ public class FileDatabase {
      */
     public static String buildArray(java.util.List<String> objects) {
         return "[" + String.join(",", objects) + "]";
+    }
+
+    public static String buildObjectFromMap(Map<String, String> map) {
+        List<String> entries = new ArrayList<>();
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            String key   = entry.getKey();
+            String value = entry.getValue();
+
+            // Deteksi apakah nilai adalah angka — simpan tanpa tanda kutip
+            if (isNumeric(value)) {
+                entries.add(buildEntryLong(key, Long.parseLong(value)));
+            } else {
+                entries.add(buildEntry(key, value));
+            }
+        }
+        return buildObject(entries.toArray(new String[0]));
+    }
+
+    private static boolean isNumeric(String value) {
+        try {
+            Long.parseLong(value);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 }
