@@ -64,4 +64,24 @@ public class InputHelper {
     public static double inputDouble(String prompt) {
         return inputDouble(prompt, Double.MIN_VALUE, Double.MAX_VALUE);
     }
+
+    public static long inputLong(String prompt, long min, long max) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                long value = Long.parseLong(scanner.nextLine().trim());
+                if (value < min || value > max) {
+                    System.out.printf("  Input harus antara %d dan %d.%n", min, max);
+                    continue;
+                }
+                return value;
+            } catch (NumberFormatException e) {
+                System.out.println("  Input tidak valid. Masukkan angka bulat.");
+            }
+        }
+    }
+
+    public static long inputLong(String prompt) {
+        return inputLong(prompt, Long.MIN_VALUE, Long.MAX_VALUE);
+    }
 }

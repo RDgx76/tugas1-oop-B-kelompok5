@@ -86,7 +86,7 @@ public class Peminjaman {
 
     @Override
     public String toString() {
-        return String.format("[%s] User: %s | Kendaraan: %s | Pinjam: %s | Rencana Kembali: %s | Status: %s | Denda: Rp%.0f",
+        return String.format("[%s] User: %s | Kendaraan: %s | Pinjam: %s | Rencana Kembali: %s | Status: %s | Denda: Rp%,d",
                 id, idUser, idKendaraan, tanggalPinjam, tanggalKembaliRencana, status, denda);
     }
 

@@ -50,13 +50,31 @@ public abstract class Kendaraan {
         this.tarifPerHari = tarifPerHari; 
     }
 
+    public void pinjam() {
+        if (this.status == StatusKendaraan.DIPINJAM) {
+            throw new IllegalStateException(
+                "Kendaraan id='" + id + "' sudah dalam status DIPINJAM"
+            );
+        }
+        setStatus(StatusKendaraan.DIPINJAM);
+    }
+
+    public void kembalikan() {
+        if (this.status == StatusKendaraan.TERSEDIA) {
+            throw new IllegalStateException(
+                "Kendaraan id='" + id + "' sudah dalam status TERSEDIA"
+            );
+        }
+        setStatus(StatusKendaraan.TERSEDIA);
+    }
+
     public boolean isTersedia() {
         return this.status == StatusKendaraan.TERSEDIA;
     }
 
     @Override
     public String toString() {
-        return String.format("[%s] %s | %s | %s | Rp%.0f/hari",
+        return String.format("[%s] %s | %s | %s | Rp%,d/hari",
                 id, nama, platNomor, status, tarifPerHari);
     }
 
